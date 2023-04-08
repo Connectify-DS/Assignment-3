@@ -1,5 +1,5 @@
 import sys
-from pysyncobj import SyncObj, replicated_sync
+from pysyncobj import SyncObj, replicated
 
 class ATMNetwork(SyncObj):
     def __init__(self, selfNode, partnerNodes):
@@ -13,7 +13,7 @@ class ATMNetwork(SyncObj):
                             }
 
     # Withdrawal endpoint
-    @replicated_sync
+    @replicated
     def withdrawal(self, account, amount):
         if account in self.account_balances and amount <= self.account_balances[account]:
             self.account_balances[account] -= amount
@@ -22,7 +22,7 @@ class ATMNetwork(SyncObj):
             return 'Withdrawal failed'
 
     # Deposit endpoint
-    @replicated_sync
+    @replicated
     def deposit(self, account, amount):
         if account in self.account_balances:
             self.account_balances[account] += amount
@@ -38,7 +38,7 @@ class ATMNetwork(SyncObj):
             return 'Account not found'
 
     # Transfer endpoint
-    @replicated_sync
+    @replicated
     def transfer(self, account1, account2, amount):
         if account1 in self.account_balances and account2 in self.account_balances and amount <= self.account_balances[account1]:
             self.account_balances[account1] -= amount
@@ -53,9 +53,9 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     port = int(sys.argv[1]) # The address of the current node
-    partners = ['localhost:%d' % int(p) for p in sys.argv[2:]] # The addresses of the partner nodes
+    partners = ['127.0.0.0:%d' % int(p) for p in sys.argv[2:]] # The addresses of the partner nodes
 
-    network = ATMNetwork('localhost:%d' % port, partners)
+    network = ATMNetwork('127.0.0.0:%d' % port, partners)
 
     # Interactive mode for user input
     while True:

@@ -47,10 +47,11 @@ def createTopic():
         }
         return jsonify(resp), 400
     topicName = req['topic_name']
-    selfNodes=req['selfNode']
+    selfNode=req['selfNode']
     partnerNodes=req['partnerNodes']
+    
     try:
-        mqs.create_topic(topic_name=topicName,selfNodes=selfNodes,
+        mqs.create_topic(topic_name=topicName,selfNode=selfNode,
                          partnerNodes=partnerNodes)
         resp = {
             "status": "success",
@@ -99,7 +100,7 @@ def publish():
     ## Check whether producer ID is valid and it is registered under the topic in the Broker Manager
     topicName = req['topic_name']
     message = req['message']
-    
+    print("Reached Broker")
     try:
         mqs.enqueue(topic_name=topicName, message=message)
         resp = {
@@ -127,6 +128,7 @@ def retrieve():
         return jsonify(resp), 400
     topicName = req['topic_name']
     offset = req['offset']
+    print("in Broker")
     try:
         message = mqs.dequeue(topic_name=topicName, offset=int(offset))
         resp = {

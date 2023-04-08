@@ -117,13 +117,15 @@ class Broker:
                 raise Exception("Topic does not exist")
         except Exception as e:
             raise e
-
+        print("Cleared Broker Conditions")
         try:
             # topic_queue = self.topic_table.get_topic_queue(topic_name)
             # if topic_queue is None:
             #     raise Exception(f"Topic name {topic_name} not found")
             # message_id = self.message_table.add_message(message)
             # topic_queue.enqueue(message_id)
+            p=self.topicname_to_partition[topic_name]
+            print("Got partition")
             self.topicname_to_partition[topic_name].enqueue(message)
         except Exception as e:
             raise e
@@ -158,6 +160,7 @@ class Broker:
             #     return message_data
             # else:
             #     raise Exception("Could not retrieve message")
+            print("Just before dequeing")
             self.topicname_to_partition[topic_name].dequeue(offset)
         except Exception as e:
             raise e

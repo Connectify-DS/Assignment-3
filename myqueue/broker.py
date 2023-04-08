@@ -52,12 +52,12 @@ class MyBroker:
         return response
     
     @staticmethod
-    def create_partition(url:str, topic_name:str, partition_name:str, broker_id:str, rms, self_port, partner_ports, rm_flag):
+    def create_partition(url:str, topic_name:str, partition_name:str, broker_id:str, rms, selfNode, partnerNodes, rm_flag):
         #create partiton in the broker
         topics_url = url +  "/topics"
         data = {"topic_name" : partition_name,
-                "selfNodes":self_port,
-                "partnerNodes":partner_ports}
+                "selfNode":selfNode,
+                "partnerNodes":partnerNodes}
         r = None
 
         try:
@@ -166,7 +166,7 @@ class MyBroker:
         data = {"topic_name" : topic_name,
                 'message': message}
         r = None
-        
+        print("Sending message to broker")
         try:
             r = requests.post(publish_url, json = data)
             r.raise_for_status()
@@ -195,7 +195,7 @@ class MyBroker:
             data = {"topic_name" : topic_name,
                     'offset': str(offset)}
             r = None
-            
+            print("In broker.py consume message")
             try:
                 r = requests.get(consume_url, json = data)
                 r.raise_for_status()
