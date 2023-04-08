@@ -22,6 +22,8 @@ class writeManager:
         self.ispersistent = config['IS_PERSISTENT']
         self.init_brokers = config['INIT_BROKERS']
         self.read_manager_ports = config['READ_MANAGER_PORT']
+        
+        self.partition_ports = {}       #broker->max port
 
         if self.ispersistent:
             engine = create_engine(
@@ -59,13 +61,12 @@ class writeManager:
         # HARD CODING BROKERS
         for i in range(self.init_brokers):
             if self.ispersistent:
-                self.broker_dbms.add_new_broker(str(self.curr_port))
+                self.add_broker(self.curr_port)
+                # self.broker_dbms.add_new_broker(str(self.curr_port))
             else:
                 self.brokerId.append(i)
                 self.broker_port[i] = self.curr_port
                 self.num_brokers += 1
-
-            self.curr_port += 100
 
     def create_tables(self):
         self.broker_dbms.create_table()
@@ -78,17 +79,15 @@ class writeManager:
         self.broker_dbms.cur.execute("""
             DROP TABLE IF EXISTS BROKERS, PRODUCERS, PARTITIONS, TOPICS_WM;
         """)
-
         self.broker_dbms.conn.commit()
 
-
-        
     def add_broker(self, port):
         ## Note: You will have to request read manager to add this broker too.
         if self.ispersistent:
             # port = self.curr_port
             self.curr_port += 100
             broker_id = self.broker_dbms.add_new_broker(str(port))
+            self.partition_ports[broker_id] = port
         else:
             broker_id = self.num_brokers
             self.brokerId.append(broker_id)
@@ -109,51 +108,74 @@ class writeManager:
         if self.ispersistent:
             self.topic_dbms.add_topic(topic_name)
 
-            broker_id, broker_port = self.broker_dbms.get_random_broker()
+            # broker_id, broker_port = self.broker_dbms.get_random_broker()
+            # broker_ids, broker_ports = self.broker_dbms.get_three_random_brokers()
 
-            partition_name = topic_name + ".1"
-            self.partition_dbms.add_partition(partition_name, broker_id)
+            # partition_name = topic_name + ".1"
+            # self.partition_dbms.add_partition(partition_name, broker_ids[0])
         else:
             self.topics.append(topic_name)
             self.topics_offset[topic_name] = 0
             self.topic_numPartitions[topic_name] = 0
 
-        MyBroker.add_topic(topic_name, self.read_manager_ports)
-        self.health_logger.add_update_health_log('broker', broker_port, time.time())
-        return self.add_partition(topic_name)
+        # self.partition_ports[broker_ids[0]] += 1
+        # self.partition_ports[broker_ids[1]] += 1
+        # self.partition_ports[broker_ids[2]] += 1
 
-            
-        resp = MyBroker.add_topic(topic_name, self.read_manager_ports)
-        self.add_partition(topic_name)
-        # print(resp)
-        return resp
+        # port1 = self.partition_ports[broker_ids[0]]
+        # port2 = self.partition_ports[broker_ids[1]]
+        # port3 = self.partition_ports[broker_ids[2]]
+
+        MyBroker.add_topic(topic_name, self.read_manager_ports)
+        # self.health_logger.add_update_health_log('broker', broker_ports[0], time.time())
+        return self.add_partition(topic_name)
     
+    # todo: add a metadata for mapping between partition id and three ports, and recover in case of failure
     def add_partition(self, topic_name):
         # Need to send request to read manager too.
         # Choose a Broker (Round Robin / Random)
         # Create the partition by calling create_topic of MyBroker instance
 
         if self.ispersistent:
-            broker_id, broker_port = self.broker_dbms.get_random_broker()
+            broker_ids, broker_ports = self.broker_dbms.get_three_random_brokers()
             partition_id = self.topic_dbms.add_partition(topic_name)
 
             partition_name = topic_name + "." + str(partition_id)
 
-            self.partition_dbms.add_partition(partition_name, broker_id)
+            self.partition_dbms.add_partition(partition_name, broker_ids[0])
         else:
-            broker_id = random.choice(self.brokerId)
-            broker_port = self.broker_port[broker_id]
+            broker_ids = random.sample(self.brokerId, k=3)
+            broker_ports = [self.broker_port[i] for i in broker_ids]
 
             self.topic_numPartitions[topic_name] += 1
             partition_name = topic_name + "." + \
                 str(self.topic_numPartitions[topic_name])
 
-            self.partition_broker[partition_name] = broker_id
+            self.partition_broker[partition_name] = broker_ids[0]
 
-        url = "http://127.0.0.1:" + str(broker_port)
+        self.partition_ports[broker_ids[0]] += 1
+        self.partition_ports[broker_ids[1]] += 1
+        self.partition_ports[broker_ids[2]] += 1
+
+        port1 = self.partition_ports[broker_ids[0]]
+        port2 = self.partition_ports[broker_ids[1]]
+        port3 = self.partition_ports[broker_ids[2]]
+        
+        url = "http://127.0.0.1:" + str(broker_ports[0])
         resp = MyBroker.create_partition(
-            url, topic_name, partition_name, broker_id, self.read_manager_ports)
-        self.health_logger.add_update_health_log('broker', broker_port, time.time())
+            url, topic_name, partition_name, broker_ids[0], self.read_manager_ports, port1, [port2, port3], 1)
+        self.health_logger.add_update_health_log('broker', broker_ports[0], time.time())
+
+        url = "http://127.0.0.1:" + str(broker_ports[1])
+        resp = MyBroker.create_partition(
+            url, topic_name, partition_name, broker_ids[1], self.read_manager_ports, port2, [port1, port3], 0)
+        self.health_logger.add_update_health_log('broker', broker_ports[1], time.time())
+
+        url = "http://127.0.0.1:" + str(broker_ports[2])
+        resp = MyBroker.create_partition(
+            url, topic_name, partition_name, broker_ids[2], self.read_manager_ports, port3, [port1, port2], 0)
+        self.health_logger.add_update_health_log('broker', broker_ports[2], time.time())
+
         return resp
 
     def remove_broker(self, broker_id):

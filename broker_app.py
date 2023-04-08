@@ -47,8 +47,11 @@ def createTopic():
         }
         return jsonify(resp), 400
     topicName = req['topic_name']
+    selfNodes=req['selfNode']
+    partnerNodes=req['partnerNodes']
     try:
-        mqs.create_topic(topic_name=topicName)
+        mqs.create_topic(topic_name=topicName,selfNodes=selfNodes,
+                         partnerNodes=partnerNodes)
         resp = {
             "status": "success",
             "message": f'Topic {topicName} created successfully',

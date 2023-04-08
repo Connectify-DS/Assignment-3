@@ -8,13 +8,15 @@ from database_structures import TopicDBMS, MessageDBMS
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 
+from models.partition import Partition
+
 class Broker:
     """
     This class is the main class of the system. It is responsible for the creation of topics,
     registering producers and consumers, and the enqueueing and dequeueing of messages.
     """
 
-    def __init__(self,config):
+    def __init__(self, config):
         self.persistent=config['IS_PERSISTENT']
         if config['IS_PERSISTENT']:
             engine = create_engine(
@@ -36,6 +38,8 @@ class Broker:
             self.message_table = MessageDBMS(config)
             self.topic_table = TopicDBMS(config)
             self.health_logger = HealthDBMS(config)
+
+            self.topicname_to_partition:dict[str,Partition]={}
         else:
             # Create the tables if they don't exist in memory
             self.message_table = MessageTable()
@@ -74,7 +78,7 @@ class Broker:
 
         self.conn.commit()
 
-    def create_topic(self, topic_name: str):
+    def create_topic(self, topic_name: str, selfNode, partnerNodes):
         """
         Creates a new topic with the given name.
         """
@@ -82,7 +86,15 @@ class Broker:
             topics = self.list_topics()
             if topic_name in topics:
                 raise Exception("Topic already exists")
-            return self.topic_table.create_topic_queue(topic_name)
+            res = self.topic_table.create_topic_queue(topic_name)
+            self.topicname_to_partition[topic_name] = Partition(
+                        self.topic_table,
+                        self.message_table,
+                        topic_name,
+                        selfNode,
+                        partnerNodes
+                    )
+            return res
         except Exception as e:
             raise e
 
@@ -107,11 +119,12 @@ class Broker:
             raise e
 
         try:
-            topic_queue = self.topic_table.get_topic_queue(topic_name)
-            if topic_queue is None:
-                raise Exception(f"Topic name {topic_name} not found")
-            message_id = self.message_table.add_message(message)
-            topic_queue.enqueue(message_id)
+            # topic_queue = self.topic_table.get_topic_queue(topic_name)
+            # if topic_queue is None:
+            #     raise Exception(f"Topic name {topic_name} not found")
+            # message_id = self.message_table.add_message(message)
+            # topic_queue.enqueue(message_id)
+            self.topicname_to_partition[topic_name].enqueue(message)
         except Exception as e:
             raise e
 
@@ -128,22 +141,23 @@ class Broker:
             # if topic_name not in topics:
             #     raise Exception("Topic does not exist in this broker")
 
-            topic_queue = self.topic_table.get_topic_queue(topic_name)
-            if topic_queue is None:
-                raise Exception(f"Topic name {topic_name} not found")
+            # topic_queue = self.topic_table.get_topic_queue(topic_name)
+            # if topic_queue is None:
+            #     raise Exception(f"Topic name {topic_name} not found")
 
-            size_rem = topic_queue.size() - offset
-            if size_rem <= 0:
-                raise Exception("No messages left to retrieve")
+            # size_rem = topic_queue.size() - offset
+            # if size_rem <= 0:
+            #     raise Exception("No messages left to retrieve")
 
-            if self.persistent:
-                message_id = topic_queue.get_at_offset(offset+1)
-            else:
-                message_id = topic_queue.get_at_offset(offset)
-            if message_id:
-                message_data = self.message_table.get_message(message_id)
-                return message_data
-            else:
-                raise Exception("Could not retrieve message")
+            # if self.persistent:
+            #     message_id = topic_queue.get_at_offset(offset+1)
+            # else:
+            #     message_id = topic_queue.get_at_offset(offset)
+            # if message_id:
+            #     message_data = self.message_table.get_message(message_id)
+            #     return message_data
+            # else:
+            #     raise Exception("Could not retrieve message")
+            self.topicname_to_partition[topic_name].dequeue(offset)
         except Exception as e:
             raise e

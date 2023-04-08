@@ -52,10 +52,12 @@ class MyBroker:
         return response
     
     @staticmethod
-    def create_partition(url:str, topic_name:str, partition_name:str, broker_id:str, rms):
+    def create_partition(url:str, topic_name:str, partition_name:str, broker_id:str, rms, self_port, partner_ports, rm_flag):
         #create partiton in the broker
         topics_url = url +  "/topics"
-        data = {"topic_name" : partition_name}
+        data = {"topic_name" : partition_name,
+                "selfNodes":self_port,
+                "partnerNodes":partner_ports}
         r = None
 
         try:
@@ -76,30 +78,31 @@ class MyBroker:
             raise Exception(f"{url}: Failed to create topic")
         
         #update all rms
-        for rm in rms:
-            rm_url = "http://127.0.0.1:" + str(rm) + '/partition'
-            data = {"topic_name" : topic_name, 
-                    "partition_name" : partition_name,
-                    "broker_id": broker_id}
-            r = None
+        if rm_flag == 1:
+            for rm in rms:
+                rm_url = "http://127.0.0.1:" + str(rm) + '/partition'
+                data = {"topic_name" : topic_name, 
+                        "partition_name" : partition_name,
+                        "broker_id": broker_id}
+                r = None
 
-            try:
-                r = requests.post(rm_url, json = data)
-                r.raise_for_status()
-            except requests.exceptions.HTTPError as errh:
-                if errh.response.status_code==400:
-                    raise Exception(f"{rm_url} Failed: "+ str(errh.response.json()["message"]))
-                raise errh
-            except requests.exceptions.ConnectionError as errc:
-                raise errc
-            
-            if r is None:
-                raise Exception("Null response")
-            
-            response = r.json()
-            if response["status"]=="failure":
-                raise Exception(f"{url}: Failed to create partition")
-            
+                try:
+                    r = requests.post(rm_url, json = data)
+                    r.raise_for_status()
+                except requests.exceptions.HTTPError as errh:
+                    if errh.response.status_code==400:
+                        raise Exception(f"{rm_url} Failed: "+ str(errh.response.json()["message"]))
+                    raise errh
+                except requests.exceptions.ConnectionError as errc:
+                    raise errc
+                
+                if r is None:
+                    raise Exception("Null response")
+                
+                response = r.json()
+                if response["status"]=="failure":
+                    raise Exception(f"{url}: Failed to create partition")
+                
         return response_actual
 
     # list topics in the broker

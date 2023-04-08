@@ -92,6 +92,34 @@ class BrokerDBMS:
             id, port = row[0], row[1]
             self.lock.release()
             return id, port
+        
+        except Exception as e:
+            self.conn.rollback()
+            self.lock.release()
+            raise Exception(f"DBMS ERROR: Could not get random brokers: {str(e)}")
+    
+    def get_three_random_brokers(self):
+        self.lock.acquire()
+        try:
+            self.cur.execute("""
+                SELECT * FROM BROKERS
+                ORDER BY RANDOM() LIMIT 3
+            """)
+
+            try:
+                row=self.cur.fetchall()
+                if row is None:
+                    raise Exception("No brokers present in database")
+            except Exception as e:
+                raise e
+            
+            id, port = [], []
+            for i in row:
+                id.append(i[0])
+                port.append(i[1])
+            self.lock.release()
+            return id, port
+        
         except Exception as e:
             self.conn.rollback()
             self.lock.release()
