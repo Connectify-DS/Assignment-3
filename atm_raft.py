@@ -53,40 +53,48 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     port = int(sys.argv[1]) # The address of the current node
-    partners = ['127.0.0.0:%d' % int(p) for p in sys.argv[2:]] # The addresses of the partner nodes
+    partners = ['127.0.0.1:%d' % int(p) for p in sys.argv[2:]] # The addresses of the partner nodes
 
-    network = ATMNetwork('127.0.0.0:%d' % port, partners)
+    network = ATMNetwork('127.0.0.1:%d' % port, partners)
+    # print(network._getLeader())
 
     # Interactive mode for user input
+    import time
     while True:
-        print('ATM network commands:')
-        print('1. Withdrawal')
-        print('2. Deposit')
-        print('3. Balance enquiry')
-        print('4. Transfer')
-        print('5. Exit')
-        command = input('Enter command number: ')
-        if command == '1':
-            account = input('Enter account name: ')
-            amount = int(input('Enter withdrawal amount: '))
-            result = network.withdrawal(account, amount)
-            print(result)
-        elif command == '2':
-            account = input('Enter account name: ')
-            amount = int(input('Enter deposit amount: '))
-            result = network.deposit(account, amount)
-            print(result)
-        elif command == '3':
-            account = input('Enter account name: ')
-            result = network.balance(account)
-            print(result)
-        elif command == '4':
-            account1 = input('Enter account name to transfer from: ')
-            account2 = input('Enter account name to transfer to: ')
-            amount = int(input('Enter transfer amount: '))
-            result = network.transfer(account1, account2, amount)
-            print(result)
-        elif command == '5':
-            break
-        else:
-            print('Invalid command number')
+        time.sleep(1)
+        print(network._isReady())
+        # print('ATM network commands:')
+        # print('1. Withdrawal')
+        # print('2. Deposit')
+        # print('3. Balance enquiry')
+        # print('4. Transfer')
+        # print('5. Exit')
+        # command = input('Enter command number: ')
+        # if network._getLeader() is None:
+        #     print("Run other atms first")
+        #     continue
+        # print(network._isLeader())
+        # if command == '1':
+        #     account = input('Enter account name: ')
+        #     amount = int(input('Enter withdrawal amount: '))
+        #     result = network.withdrawal(account, amount)
+        #     print(result)
+        # elif command == '2':
+        #     account = input('Enter account name: ')
+        #     amount = int(input('Enter deposit amount: '))
+        #     result = network.deposit(account, amount)
+        #     print(result)
+        # elif command == '3':
+        #     account = input('Enter account name: ')
+        #     result = network.balance(account)
+        #     print(result)
+        # elif command == '4':
+        #     account1 = input('Enter account name to transfer from: ')
+        #     account2 = input('Enter account name to transfer to: ')
+        #     amount = int(input('Enter transfer amount: '))
+        #     result = network.transfer(account1, account2, amount)
+        #     print(result)
+        # elif command == '5':
+        #     break
+        # else:
+        #     print('Invalid command number')

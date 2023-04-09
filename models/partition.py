@@ -1,18 +1,18 @@
 from pysyncobj import SyncObj, replicated_sync, replicated
 import time
 
-class Partition(SyncObj):
-    def __init__(self, topic_table, message_table, topic_name, selfNode, partnerNodes) -> None:
-        super(Partition, self).__init__(f"127.0.0.0:{selfNode}", [ f"127.0.0.0:{x}" for x in partnerNodes])
+class Partition():
+    def __init__(self, topic_table, message_table, topic_name, persistent,selfNode, partnerNodes) -> None:
+        # super(Partition, self).__init__(f"127.0.0.0:{selfNode}", [ f"127.0.0.0:{x}" for x in partnerNodes])
         self.topic_table=topic_table
         self.topic_name=topic_name
         self.message_table=message_table
-        print(selfNode,partnerNodes)
-        print(self._getLeader())
+        # print(selfNode,partnerNodes)
+        # print(self._getLeader())
+        self.persistent=persistent
 
-    @replicated_sync
+    # @replicated_sync
     def enqueue(self, message: str):
-        print("In Partition")
         try:
             topic_queue = self.topic_table.get_topic_queue(self.topic_name)
             if topic_queue is None:
@@ -22,9 +22,8 @@ class Partition(SyncObj):
         except Exception as e:
             raise e
     
-    @replicated_sync
+    # @replicated_sync
     def dequeue(self, offset: int):
-        print("In partition")
         try:
             topic_queue = self.topic_table.get_topic_queue(self.topic_name)
             if topic_queue is None:

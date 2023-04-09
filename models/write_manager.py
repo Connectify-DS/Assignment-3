@@ -223,13 +223,11 @@ class writeManager:
         # Check if Producer can publish to the topic.
         # Assign / Create Partition (Round Robin)
         # Call the appropriate broker publish_message function
-        print("I am in wm")
         if self.ispersistent:
             if not self.producer_dbms.check_producer_id(producer_id):
                 raise Exception("Invalid ProducerId")
             if not self.producer_dbms.check_producer_topic_link(producer_id, topic_name):
                 raise Exception("ProducerId is not subscribed to the topic")
-            print("wm conditions met")
             curr_partition, num_partition, num_msgs = self.topic_dbms.get_current_partition(
                 topic_name, 1)  # round robin
             num_msgs += 1
@@ -258,7 +256,6 @@ class writeManager:
             num_partition = self.topic_numPartitions[topic_name]
             num_msgs = self.topic_numMsgs[topic_name]
         url = "http://127.0.0.1:" + str(broker_port)
-        print("Going to broker")
         resp = MyBroker.publish_message(url, partition_name, message)
         self.health_logger.add_update_health_log('producer', producer_id, time.time())
         self.health_logger.add_update_health_log('broker', broker_port, time.time())

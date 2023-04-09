@@ -7,16 +7,26 @@ from flask import jsonify
 import requests
 from models import Broker
 import yaml
+import time
 import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', help='config file path', type=str)
+parser.add_argument('-n', '--num_brokers', help='Number of brokers initialised', type=int)
 args = parser.parse_args()
 config=None
 with open(args.config) as f:
     config = yaml.safe_load(f)
 
-mqs = Broker(config=config)
+selfNode=config['SERVER_PORT']+10
+partnerNodes=[1010+i*100 for i in range(args.num_brokers) if ((1010+i*100) != selfNode)]
+mqs = Broker(config=config,selfNode=selfNode,partnerNodes=partnerNodes)
+i=0
+while not mqs._isReady():
+    i+=1
+    time.sleep(5)
+    print(f"Contacting other brokers... Time Elapsed: {i*5} seconds")
+print("Broker Ready. Leader: "+str(mqs._getLeader()))
 app = Flask(__name__)
 
 # Create tables if persistent: Use only for testing. During actual runs. Tables should not
@@ -100,9 +110,14 @@ def publish():
     ## Check whether producer ID is valid and it is registered under the topic in the Broker Manager
     topicName = req['topic_name']
     message = req['message']
-    print("Reached Broker")
     try:
-        mqs.enqueue(topic_name=topicName, message=message)
+        res=mqs.enqueue(topic_name=topicName, message=message)
+        if res!=None: ## Then there is an error
+            resp = {
+                "status": "failure",
+                "message": str(res),
+            }
+            return jsonify(resp), 400
         resp = {
             "status": "success",
         }
@@ -128,9 +143,14 @@ def retrieve():
         return jsonify(resp), 400
     topicName = req['topic_name']
     offset = req['offset']
-    print("in Broker")
     try:
         message = mqs.dequeue(topic_name=topicName, offset=int(offset))
+        if type(message)==str: 
+            resp = {
+                "status": "failure",
+                "message": str(message[10:]), ## First 10 letters are "Exception "
+            }
+            return jsonify(resp), 400
         resp = {
             "status": "success",
             "message": str(message.message),

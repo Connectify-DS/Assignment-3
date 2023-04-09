@@ -16,7 +16,12 @@ python read_manager_app.py -c configs/rm1.yaml &
 python read_manager_app.py -c configs/rm2.yaml &
 sleep 5
 
-python broker_app.py -c configs/broker1.yaml &
-python broker_app.py -c configs/broker2.yaml &
-python broker_app.py -c configs/broker3.yaml &
-python broker_app.py -c configs/broker4.yaml &
+
+# python broker_app.py -c configs/broker1.yaml -n 4 &
+# sleep 2
+# python broker_app.py -c configs/broker2.yaml -n 4 &
+# sleep 2
+# python broker_app.py -c configs/broker3.yaml -n 4 &
+# sleep 2
+# python broker_app.py -c configs/broker4.yaml -n 4 &
+# sleep 2

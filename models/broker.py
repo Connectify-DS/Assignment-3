@@ -4,19 +4,23 @@ import requests
 from database_structures.health_dbms import HealthDBMS
 from in_memory_structures import TopicTable, MessageTable
 from database_structures import TopicDBMS, MessageDBMS
+from pysyncobj import SyncObj, replicated_sync, replicated
 
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 
 from models.partition import Partition
 
-class Broker:
+class Broker(SyncObj):
     """
     This class is the main class of the system. It is responsible for the creation of topics,
     registering producers and consumers, and the enqueueing and dequeueing of messages.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, selfNode, partnerNodes):
+        super(Broker, self).__init__(f"127.0.0.1:{selfNode}", [ f"127.0.0.1:{x}" for x in partnerNodes])
+        print(selfNode, partnerNodes)
+        print(self._getLeader())
         self.persistent=config['IS_PERSISTENT']
         if config['IS_PERSISTENT']:
             engine = create_engine(
@@ -91,6 +95,7 @@ class Broker:
                         self.topic_table,
                         self.message_table,
                         topic_name,
+                        self.persistent,
                         selfNode,
                         partnerNodes
                     )
@@ -104,10 +109,13 @@ class Broker:
         """
         return self.topic_table.get_topic_list()
 
+    @replicated_sync
     def enqueue(self, topic_name: str, message: str):
         """
         Enqueues a new message to the given topic.
         """
+        if topic_name not in self.topicname_to_partition:
+            return
         try:
             topics = self.list_topics()
             # print(topics, topic_name)
@@ -117,23 +125,23 @@ class Broker:
                 raise Exception("Topic does not exist")
         except Exception as e:
             raise e
-        print("Cleared Broker Conditions")
         try:
             # topic_queue = self.topic_table.get_topic_queue(topic_name)
             # if topic_queue is None:
             #     raise Exception(f"Topic name {topic_name} not found")
             # message_id = self.message_table.add_message(message)
             # topic_queue.enqueue(message_id)
-            p=self.topicname_to_partition[topic_name]
-            print("Got partition")
             self.topicname_to_partition[topic_name].enqueue(message)
         except Exception as e:
-            raise e
+            return 'Exception '+str(e)
 
+    @replicated_sync
     def dequeue(self, topic_name: str, offset: int):
         """
         Removes the next message from the given topic.
         """
+        if topic_name not in self.topicname_to_partition:
+            return 'Not your broker'
         try:
             # This is redundant as when we get the topic queue the DBMS will look
             # at all the topics and if it does not exist there will be an error
@@ -160,7 +168,6 @@ class Broker:
             #     return message_data
             # else:
             #     raise Exception("Could not retrieve message")
-            print("Just before dequeing")
-            self.topicname_to_partition[topic_name].dequeue(offset)
+            return self.topicname_to_partition[topic_name].dequeue(offset)
         except Exception as e:
-            raise e
+            return 'Exception '+str(e)

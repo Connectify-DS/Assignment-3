@@ -166,7 +166,6 @@ class MyBroker:
         data = {"topic_name" : topic_name,
                 'message': message}
         r = None
-        print("Sending message to broker")
         try:
             r = requests.post(publish_url, json = data)
             r.raise_for_status()
@@ -195,7 +194,6 @@ class MyBroker:
             data = {"topic_name" : topic_name,
                     'offset': str(offset)}
             r = None
-            print("In broker.py consume message")
             try:
                 r = requests.get(consume_url, json = data)
                 r.raise_for_status()
