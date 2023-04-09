@@ -1,5 +1,5 @@
 import sys
-from pysyncobj import SyncObj, replicated
+from pysyncobj import SyncObj, replicated_sync
 
 class ATMNetwork(SyncObj):
     def __init__(self, selfNode, partnerNodes):
@@ -13,7 +13,7 @@ class ATMNetwork(SyncObj):
                             }
 
     # Withdrawal endpoint
-    @replicated
+    @replicated_sync
     def withdrawal(self, account, amount):
         if account in self.account_balances and amount <= self.account_balances[account]:
             self.account_balances[account] -= amount
@@ -22,7 +22,7 @@ class ATMNetwork(SyncObj):
             return 'Withdrawal failed'
 
     # Deposit endpoint
-    @replicated
+    @replicated_sync
     def deposit(self, account, amount):
         if account in self.account_balances:
             self.account_balances[account] += amount
@@ -38,7 +38,7 @@ class ATMNetwork(SyncObj):
             return 'Account not found'
 
     # Transfer endpoint
-    @replicated
+    @replicated_sync
     def transfer(self, account1, account2, amount):
         if account1 in self.account_balances and account2 in self.account_balances and amount <= self.account_balances[account1]:
             self.account_balances[account1] -= amount
@@ -56,45 +56,39 @@ if __name__ == '__main__':
     partners = ['127.0.0.1:%d' % int(p) for p in sys.argv[2:]] # The addresses of the partner nodes
 
     network = ATMNetwork('127.0.0.1:%d' % port, partners)
-    # print(network._getLeader())
-
-    # Interactive mode for user input
-    import time
+    
     while True:
-        time.sleep(1)
-        print(network._isReady())
-        # print('ATM network commands:')
-        # print('1. Withdrawal')
-        # print('2. Deposit')
-        # print('3. Balance enquiry')
-        # print('4. Transfer')
-        # print('5. Exit')
-        # command = input('Enter command number: ')
-        # if network._getLeader() is None:
-        #     print("Run other atms first")
-        #     continue
-        # print(network._isLeader())
-        # if command == '1':
-        #     account = input('Enter account name: ')
-        #     amount = int(input('Enter withdrawal amount: '))
-        #     result = network.withdrawal(account, amount)
-        #     print(result)
-        # elif command == '2':
-        #     account = input('Enter account name: ')
-        #     amount = int(input('Enter deposit amount: '))
-        #     result = network.deposit(account, amount)
-        #     print(result)
-        # elif command == '3':
-        #     account = input('Enter account name: ')
-        #     result = network.balance(account)
-        #     print(result)
-        # elif command == '4':
-        #     account1 = input('Enter account name to transfer from: ')
-        #     account2 = input('Enter account name to transfer to: ')
-        #     amount = int(input('Enter transfer amount: '))
-        #     result = network.transfer(account1, account2, amount)
-        #     print(result)
-        # elif command == '5':
-        #     break
-        # else:
-        #     print('Invalid command number')
+        print('ATM network commands:')
+        print('1. Withdrawal')
+        print('2. Deposit')
+        print('3. Balance enquiry')
+        print('4. Transfer')
+        print('5. Exit')
+        command = input('Enter command number: ')
+        if network._getLeader() is None:
+            print("Run other atms first")
+            continue
+        if command == '1':
+            account = input('Enter account name: ')
+            amount = int(input('Enter withdrawal amount: '))
+            result = network.withdrawal(account, amount)
+            print(result)
+        elif command == '2':
+            account = input('Enter account name: ')
+            amount = int(input('Enter deposit amount: '))
+            result = network.deposit(account, amount)
+            print(result)
+        elif command == '3':
+            account = input('Enter account name: ')
+            result = network.balance(account)
+            print(result)
+        elif command == '4':
+            account1 = input('Enter account name to transfer from: ')
+            account2 = input('Enter account name to transfer to: ')
+            amount = int(input('Enter transfer amount: '))
+            result = network.transfer(account1, account2, amount)
+            print(result)
+        elif command == '5':
+            break
+        else:
+            print('Invalid command number')
