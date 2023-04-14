@@ -9,13 +9,15 @@ MESSAGE_PER_PRODUCER = 10
 
 load_balancer_url = f"http://127.0.0.1:5000"
 
+
 def add_topic(topic_name):
     resp = requests.post(
-        url = load_balancer_url + "/topics",
+        url=load_balancer_url + "/topics",
         json={
             "topic_name": topic_name
         }
     )
+
 
 print(f"adding {NUM_TOPICS} topics")
 producer_ids = {}
@@ -39,7 +41,7 @@ for topic_num in range(NUM_TOPICS):
     for _ in range(NUM_PROUDUCERS_PER_TOPIC):
         try:
             resp = requests.post(
-                url = load_balancer_url + "/producer/register",
+                url=load_balancer_url + "/producer/register",
                 json={"topic_name": f"T{topic_num}"})
             x = resp.json()["message"].split(' ')
             i = 0
@@ -55,18 +57,20 @@ print(25*"-")
 
 prod_cons_threads = []
 
+
 def add_message(topic_num):
     for producer_id in producer_ids[f"T{topic_num}"]:
         for message_num in range(MESSAGE_PER_PRODUCER):
             try:
                 resp = requests.post(
-                    url = load_balancer_url + "/producer/produce",
+                    url=load_balancer_url + "/producer/produce",
                     json={"producer_id": producer_id, "topic_name": f"T{topic_num}",
-                        "message": f"{message_num}th message for Topic T{topic_num} by producer P{producer_id}"})
-                assert(resp.status_code == 200)
+                          "message": f"{message_num}th message for Topic T{topic_num} by producer P{producer_id}"})
+                assert (resp.status_code == 200)
                 sleep(0.1)
             except Exception as e:
                 print(e)
+
 
 print("Producing messages")
 for topic_num in range(NUM_TOPICS):
@@ -82,7 +86,7 @@ for topic_num in range(NUM_TOPICS):
     for _ in range(NUM_CONSUMERS_PER_TOPIC):
         try:
             resp = requests.post(
-                url = load_balancer_url + "/consumer/register",
+                url=load_balancer_url + "/consumer/register",
                 json={"topic_name": f"T{topic_num}"})
             x = resp.json()["message"].split(' ')
             i = 0
@@ -103,14 +107,15 @@ def read_message(topic_num):
             for message_num in range(MESSAGE_PER_PRODUCER):
                 try:
                     resp = requests.get(
-                        url = load_balancer_url + "/consumer/consume",
+                        url=load_balancer_url + "/consumer/consume",
                         json={"consumer_id": consumer_id, "topic_name": f"T{topic_num}"})
                     sleep(0.1)
-                    assert(resp.status_code == 200)
-                    with open('consumer_outs/T{}_C{}.txt'.format(topic_num, consumer_id), 'a') as f:
+                    assert (resp.status_code == 200)
+                    with open('consumer_outs/T{}_C{}.txt'.format(topic_num, consumer_id), 'w') as f:
                         f.write(resp.json()["message"] + "\n")
                 except Exception as e:
                     print(e)
+
 
 print("Consuming messages")
 for topic_num in range(NUM_TOPICS):

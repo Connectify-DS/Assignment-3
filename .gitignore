@@ -1,5 +1,6 @@
 database.py
 Tests/logs/**
+Tests/consumer_outs
 
 #official python gitignore
 # Byte-compiled / optimized / DLL files

@@ -11,12 +11,13 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', help='config file path', type=str)
 args = parser.parse_args()
-config=None
+config = None
 with open(args.config) as f:
     config = yaml.safe_load(f)
 
 app = Flask(__name__)
 rm = readManager(config=config)
+
 
 @app.route('/broker', methods=['POST'])
 def addBroker():
@@ -42,6 +43,7 @@ def addBroker():
         }
         return jsonify(resp), 400
 
+
 @app.route('/topics', methods=['POST'])
 def addTopic():
     req = request.json
@@ -65,6 +67,7 @@ def addTopic():
             "message": str(e),
         }
         return jsonify(resp), 400
+
 
 @app.route('/broker/remove', methods=['DELETE'])
 def removeBroker():
@@ -90,6 +93,7 @@ def removeBroker():
         }
         return jsonify(resp), 400
 
+
 @app.route('/topics', methods=['GET'])
 def listTopic():
     """
@@ -108,6 +112,7 @@ def listTopic():
             "message": str(e),
         }
         return jsonify(resp), 400
+
 
 @app.route('/partition', methods=['POST'])
 def addPartition():
@@ -135,6 +140,7 @@ def addPartition():
         }
         return jsonify(resp), 400
 
+
 @app.route('/consumer/register', methods=['POST'])
 def registerConsumer():
     req = request.json
@@ -148,7 +154,7 @@ def registerConsumer():
         topic_name = req['topic_name']
         sync = req["sync"]
         cid = rm.register_consumer(topic_name=topic_name, sync=sync)
-        
+
         resp = {
             "status": "success",
             "message": f'Consumer ID {cid} subscribed to topic {topic_name}',
@@ -160,6 +166,7 @@ def registerConsumer():
             "message": str(e),
         }
         return jsonify(resp), 400
+
 
 @app.route('/consumer/consume', methods=['GET'])
 def retrieve():
@@ -174,7 +181,8 @@ def retrieve():
         consumer_id = req['consumer_id']
         topic_name = req['topic_name']
         sync = req["sync"]
-        act_message=rm.consume_message(consumer_id=consumer_id, topic_name=topic_name, sync=sync)
+        act_message = rm.consume_message(
+            consumer_id=consumer_id, topic_name=topic_name, sync=sync)
         resp = {
             "status": "success",
             "message": f"Consumer ID {consumer_id} retrieved message from topic {topic_name}: {act_message}",
@@ -186,6 +194,7 @@ def retrieve():
             "message": str(e),
         }
         return jsonify(resp), 400
+
 
 if __name__ == "__main__":
     app.run(debug=False, port=config['SERVER_PORT'])
